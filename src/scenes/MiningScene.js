@@ -8,7 +8,9 @@ const MAP_HEIGHT = 40;
 const TILE_EMPTY = 0;
 const TILE_DIRT = 1;
 const TILE_ROCK = 2; // indestructible
-const TILE_ORE = 3;
+const TILE_COAL = 3;
+const TILE_IRON = 4;
+const TILE_CRYSTAL = 5;
 
 export default class MiningScene extends Phaser.Scene {
     constructor() {
@@ -43,18 +45,31 @@ export default class MiningScene extends Phaser.Scene {
                     if (y < 2) {
                         row.push(TILE_EMPTY); // Top space
                     } else {
-                        // Generate dirt, rocks, and ore
+                        // Generate dirt, rocks, and ores based on depth
                         let rand = Math.random();
                         if (rand > 0.95 && y > 5) {
                             row.push(TILE_ROCK);
+                        } else if (rand > 0.98 && y > 25) {
+                            row.push(TILE_CRYSTAL);
+                        } else if (rand > 0.92 && y > 10) {
+                            row.push(TILE_IRON);
                         } else if (rand > 0.85 && y > 3) {
-                            row.push(TILE_ORE);
+                            row.push(TILE_COAL);
                         } else {
                             row.push(TILE_DIRT);
                         }
                     }
                 }
                 GameState.miningBoardState.push(row);
+            }
+        } else {
+            // Refill some resources for new phases
+            for (let y = 2; y < MAP_HEIGHT; y++) {
+                for (let x = 0; x < MAP_WIDTH; x++) {
+                    if (GameState.miningBoardState[y][x] === TILE_EMPTY && Math.random() > 0.9) {
+                         GameState.miningBoardState[y][x] = TILE_DIRT;
+                    }
+                }
             }
         }
         this.board = GameState.miningBoardState;
@@ -70,7 +85,9 @@ export default class MiningScene extends Phaser.Scene {
                     let color = 0x000000;
                     if (type === TILE_DIRT) color = 0x5a3e2b;
                     if (type === TILE_ROCK) color = 0x4a4a4a;
-                    if (type === TILE_ORE) color = 0xffd700;
+                    if (type === TILE_COAL) color = 0x333333; // Dark gray
+                    if (type === TILE_IRON) color = 0x4a90e2; // Blue
+                    if (type === TILE_CRYSTAL) color = 0xbd10e0; // Purple
 
                     let rect = this.add.rectangle(
                         x * GRID_SIZE + GRID_SIZE / 2,
@@ -142,21 +159,21 @@ export default class MiningScene extends Phaser.Scene {
             return;
         }
 
-        if (targetType === TILE_DIRT || targetType === TILE_ORE) {
+        if (targetType !== TILE_EMPTY) {
             // Digging
-            if (targetType === TILE_ORE) {
-                GameState.resources += 5;
-            }
+            if (targetType === TILE_COAL) GameState.resources += 2;
+            else if (targetType === TILE_IRON) GameState.resources += 10;
+            else if (targetType === TILE_CRYSTAL) GameState.resources += 50;
+            else if (targetType === TILE_DIRT) GameState.resources += 1;
 
             this.board[newY][newX] = TILE_EMPTY;
             let rect = this.getTileRect(newX, newY);
             if (rect) rect.destroy();
 
-            // Move player to the dug tile
             this.playerX = newX;
             this.playerY = newY;
             this.ap -= 1;
-        } else if (targetType === TILE_EMPTY) {
+        } else {
             // Just move
             this.playerX = newX;
             this.playerY = newY;
@@ -182,12 +199,13 @@ export default class MiningScene extends Phaser.Scene {
         this.ap -= 3;
 
         // Reveal nearby ores visually
-        for (let dy = -3; dy <= 3; dy++) {
-            for (let dx = -3; dx <= 3; dx++) {
+        for (let dy = -4; dy <= 4; dy++) {
+            for (let dx = -4; dx <= 4; dx++) {
                 let tx = this.playerX + dx;
                 let ty = this.playerY + dy;
                 if (tx >= 0 && tx < MAP_WIDTH && ty >= 0 && ty < MAP_HEIGHT) {
-                    if (this.board[ty][tx] === TILE_ORE) {
+                    let type = this.board[ty][tx];
+                    if (type === TILE_COAL || type === TILE_IRON || type === TILE_CRYSTAL) {
                         let rect = this.getTileRect(tx, ty);
                         if (rect) rect.setStrokeStyle(4, 0x00ffff);
                     }

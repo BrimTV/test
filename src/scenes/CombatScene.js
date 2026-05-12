@@ -185,19 +185,19 @@ export default class CombatScene extends Phaser.Scene {
         this.activeEntity = this.entities[this.turnIndex];
 
         this.highlightActive();
+        this.showAvailableActions();
 
         if (this.activeEntity.isEnemy) {
             this.turnText.setText('Enemy Turn');
             this.time.delayedCall(500, () => this.processEnemyAI());
         } else {
-            this.turnText.setText('Your Turn: Select move/attack target');
-            // Wait for player input via pointerdown
+            this.turnText.setText('Your Turn: Move or Attack');
         }
     }
 
     highlightActive() {
-        if (this.highlightRect) this.highlightRect.destroy();
-        this.highlightRect = this.add.rectangle(
+        if (this.activeHighlight) this.activeHighlight.destroy();
+        this.activeHighlight = this.add.rectangle(
             OFFSET_X + this.activeEntity.cx * GRID_SIZE + GRID_SIZE / 2,
             OFFSET_Y + this.activeEntity.cy * GRID_SIZE + GRID_SIZE / 2,
             GRID_SIZE,
@@ -205,6 +205,43 @@ export default class CombatScene extends Phaser.Scene {
             0xffffff,
             0.3
         );
+    }
+
+    showAvailableActions() {
+        if (this.actionHighlights) this.actionHighlights.destroy(true);
+        this.actionHighlights = this.add.group();
+
+        if (this.activeEntity.isEnemy) return;
+
+        // Show move range (blue)
+        for (let y = 0; y < ROWS; y++) {
+            for (let x = 0; x < COLS; x++) {
+                let d = this.dist(this.activeEntity.cx, this.activeEntity.cy, x, y);
+                if (d <= this.activeEntity.moveRange && !this.board[y][x]) {
+                    let r = this.add.rectangle(
+                        OFFSET_X + x * GRID_SIZE + GRID_SIZE / 2,
+                        OFFSET_Y + y * GRID_SIZE + GRID_SIZE / 2,
+                        GRID_SIZE - 4,
+                        GRID_SIZE - 4,
+                        0x0000ff,
+                        0.2
+                    );
+                    this.actionHighlights.add(r);
+                }
+                // Show attack range (red)
+                if (d <= this.activeEntity.attackRange && this.board[y][x] && this.board[y][x].isEnemy) {
+                    let r = this.add.rectangle(
+                        OFFSET_X + x * GRID_SIZE + GRID_SIZE / 2,
+                        OFFSET_Y + y * GRID_SIZE + GRID_SIZE / 2,
+                        GRID_SIZE - 4,
+                        GRID_SIZE - 4,
+                        0xff0000,
+                        0.3
+                    );
+                    this.actionHighlights.add(r);
+                }
+            }
+        }
     }
 
     dist(x1, y1, x2, y2) {
@@ -225,7 +262,21 @@ export default class CombatScene extends Phaser.Scene {
             // Move
             if (distance <= this.activeEntity.moveRange) {
                 this.moveEntity(this.activeEntity, cx, cy);
-                this.endTurn();
+                // Check if can attack after move
+                let canAttack = false;
+                for (let ent of this.entities) {
+                    if (ent.isEnemy && this.dist(cx, cy, ent.cx, ent.cy) <= this.activeEntity.attackRange) {
+                        canAttack = true;
+                        break;
+                    }
+                }
+                
+                if (canAttack) {
+                    this.showAvailableActions(); // Update highlights for attack
+                    this.turnText.setText('Unit moved. Now select a target to attack!');
+                } else {
+                    this.endTurn();
+                }
             }
         }
     }
@@ -362,6 +413,7 @@ export default class CombatScene extends Phaser.Scene {
     }
 
     endTurn() {
+        if (this.actionHighlights) this.actionHighlights.destroy(true);
         this.turnIndex++;
         this.time.delayedCall(300, () => this.nextTurn());
     }
