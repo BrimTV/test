@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Заявка на консультацию</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .form-container {
+            background-color: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 400px;
+        }
+        h2 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #666;
+            font-weight: bold;
+        }
+        input, textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            box-sizing: border-box;
+            font-size: 16px;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            margin-top: 10px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .success-message {
+            display: none;
+            text-align: center;
+            color: green;
+            font-weight: bold;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="form-container">
+    <h2>Оставить заявку</h2>
+    <form id="leadForm">
+        <div class="form-group">
+            <label for="name">Ваше имя:</label>
+            <input type="text" id="name" required placeholder="Например: Анна">
+        </div>
+        <div class="form-group">
+            <label for="phone">Ваш телефон:</label>
+            <input type="tel" id="phone" required placeholder="+7 (999) 000-00-00">
+        </div>
+        <div class="form-group">
+            <label for="request">Что вас интересует?</label>
+            <textarea id="request" rows="3" placeholder="Кратко опишите ваш запрос..."></textarea>
+        </div>
+        <button type="submit">Отправить заявку</button>
+    </form>
+    <div class="success-message" id="successMessage">
+        Спасибо! Заявка успешно отправлена. Мы свяжемся с вами.
+    </div>
+</div>
+
+<script>
+    document.getElementById('leadForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+
+        const submitButton = this.querySelector('button');
+        submitButton.disabled = true;
+        submitButton.innerText = 'Отправка...';
+
+        const leadData = {
+            name: document.getElementById('name').value,
+            phone: document.getElementById('phone').value,
+            request: document.getElementById('request').value
+        };
+
+        try {
+            const response = await fetch('/api/leads', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(leadData)
+            });
+
+            if (response.ok) {
+                document.getElementById('leadForm').style.display = 'none';
+                document.getElementById('successMessage').style.display = 'block';
+            } else {
+                alert('Произошла ошибка при отправке.');
+            }
+        } catch (error) {
+            console.error('Ошибка:', error);
+            alert('Произошла ошибка при отправке.');
+        } finally {
+            submitButton.disabled = false;
+            submitButton.innerText = 'Отправить заявку';
+        }
+    });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Моя CRM Система</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f0f2f5;
+            margin: 0;
+            padding: 20px;
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .header-actions {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .header-actions a {
+            background-color: #28a745;
+            color: white;
+            padding: 10px 20px;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        .header-actions a:hover {
+            background-color: #218838;
+        }
+        .board {
+            display: flex;
+            gap: 20px;
+            overflow-x: auto;
+            padding-bottom: 20px;
+        }
+        .column {
+            flex: 1;
+            min-width: 250px;
+            background-color: #e9ecef;
+            border-radius: 10px;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .column h3 {
+            margin-top: 0;
+            text-align: center;
+            color: #495057;
+            border-bottom: 2px solid #ccc;
+            padding-bottom: 10px;
+        }
+
+        /* Цвета колонок/статусов */
+        .col-red h3 { border-color: #dc3545; color: #dc3545; }
+        .col-yellow h3 { border-color: #ffc107; color: #d39e00; }
+        .col-green h3 { border-color: #28a745; color: #28a745; }
+        .col-blue h3 { border-color: #007bff; color: #007bff; }
+
+        .card {
+            background-color: white;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            position: relative;
+        }
+        .card h4 {
+            margin: 0 0 10px 0;
+            color: #333;
+        }
+        .card p {
+            margin: 5px 0;
+            color: #666;
+            font-size: 14px;
+        }
+        .card .date {
+            font-size: 12px;
+            color: #999;
+            margin-top: 10px;
+        }
+
+        /* Селектор изменения статуса */
+        .status-select {
+            margin-top: 15px;
+            width: 100%;
+            padding: 5px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            background-color: #f8f9fa;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>✨ CRM Дашборд Ульяны</h1>
+
+    <div class="header-actions">
+        <a href="/form.html" target="_blank">🔗 Открыть форму для клиентов</a>
+    </div>
+
+    <div class="board">
+        <div class="column col-red" id="col-red">
+            <h3>🔴 Отказ</h3>
+            <div class="cards-container"></div>
+        </div>
+        <div class="column col-yellow" id="col-yellow">
+            <h3>🟡 Думает (Новые)</h3>
+            <div class="cards-container"></div>
+        </div>
+        <div class="column col-green" id="col-green">
+            <h3>🟢 Купил</h3>
+            <div class="cards-container"></div>
+        </div>
+        <div class="column col-blue" id="col-blue">
+            <h3>🔵 Купил 2-й раз</h3>
+            <div class="cards-container"></div>
+        </div>
+    </div>
+
+    <script>
+        async function fetchLeads() {
+            try {
+                const response = await fetch('/api/leads');
+                const leads = await response.json();
+                renderLeads(leads);
+            } catch (error) {
+                console.error('Ошибка загрузки лидов:', error);
+            }
+        }
+
+        function renderLeads(leads) {
+            // Очищаем колонки
+            document.querySelectorAll('.cards-container').forEach(c => c.innerHTML = '');
+
+            leads.forEach(lead => {
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.innerHTML = `
+                    <h4>${lead.name}</h4>
+                    <p><strong>📞</strong> ${lead.phone}</p>
+                    <p><strong>💬</strong> ${lead.request}</p>
+                    <div class="date">📅 ${lead.date}</div>
+
+                    <select class="status-select" onchange="updateStatus('${lead.id}', this.value)">
+                        <option value="red" ${lead.status === 'red' ? 'selected' : ''}>🔴 Отказ</option>
+                        <option value="yellow" ${lead.status === 'yellow' ? 'selected' : ''}>🟡 Думает</option>
+                        <option value="green" ${lead.status === 'green' ? 'selected' : ''}>🟢 Купил</option>
+                        <option value="blue" ${lead.status === 'blue' ? 'selected' : ''}>🔵 Купил 2-й раз</option>
+                    </select>
+                `;
+
+                // Помещаем карточку в нужную колонку
+                const column = document.querySelector(`#col-${lead.status} .cards-container`);
+                if (column) {
+                    column.appendChild(card);
+                } else {
+                    // Fallback если статус кривой
+                    document.querySelector(`#col-yellow .cards-container`).appendChild(card);
+                }
+            });
+        }
+
+        async function updateStatus(id, newStatus) {
+            try {
+                await fetch(`/api/leads/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status: newStatus })
+                });
+                // Перерисовываем доску
+                fetchLeads();
+            } catch (error) {
+                console.error('Ошибка обновления статуса:', error);
+                alert('Не удалось обновить статус');
+            }
+        }
+
+        // Загружаем лидов при старте страницы
+        fetchLeads();
+
+        // Автообновление раз в 5 секунд (чтобы Ульяна видела новые заявки сразу)
+        setInterval(fetchLeads, 5000);
+
+    </script>
+</body>
+</html>
