@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Форма сбора лидов</title>
+    <style>
+        body { font-family: sans-serif; background: #e9ecef; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .form-card { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); width: 100%; max-width: 400px; }
+        input, textarea { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
+        button { width: 100%; padding: 12px; background: #28a745; color: white; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; }
+        .success { display: none; color: green; text-align: center; margin-top: 10px; }
+    </style>
+</head>
+<body>
+    <div class="form-card">
+        <h2>🚀 Оставить заявку</h2>
+        <input type="text" id="name" placeholder="Ваше имя" required>
+        <input type="tel" id="phone" placeholder="Телефон" required>
+        <textarea id="request" placeholder="Ваш запрос"></textarea>
+        <button onclick="sendLead()">Отправить</button>
+        <div id="msg" class="success">✅ Заявка отправлена!</div>
+    </div>
+
+    <script>
+        function sendLead() {
+            const lead = {
+                id: Date.now().toString(),
+                name: document.getElementById('name').value,
+                phone: document.getElementById('phone').value,
+                request: document.getElementById('request').value,
+                status: 'yellow',
+                date: new Date().toLocaleString()
+            };
+
+            const leads = JSON.parse(localStorage.getItem('crm_leads') || '[]');
+            leads.push(lead);
+            localStorage.setItem('crm_leads', JSON.stringify(leads));
+
+            document.getElementById('msg').style.display = 'block';
+            setTimeout(() => {
+                window.location.href = 'index.html';
+            }, 1500);
+        }
+    </script>
+</body>
+</html>
